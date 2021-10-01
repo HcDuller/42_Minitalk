@@ -6,7 +6,7 @@
 /*   By: hde-camp <hde-camp@student.42sp.org.br>    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2021/09/22 15:35:39 by hde-camp          #+#    #+#             */
-/*   Updated: 2021/09/29 19:48:11 by hde-camp         ###   ########.fr       */
+/*   Updated: 2021/10/01 18:20:02 by hde-camp         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -18,11 +18,13 @@
 
 void	one_handler(int signo, siginfo_t *info, void *context)
 {
-	static	int			on_off = 0;
+	static	int	sig_count = 0;
+	static	int	total_size = 0;
+	
 
 	if (signo == SIGUSR1)
 	{
-		on_off += 1;
+		sig_count += 1;
 		if (info->si_pid)
 		{
 			kill(info->si_pid, SIGUSR1);
@@ -30,10 +32,12 @@ void	one_handler(int signo, siginfo_t *info, void *context)
 	}
 	else if (signo == SIGUSR2)
 	{
+		total_size += 1;
+		//push a letter corresponding to sig_count
 		ft_putstr_fd("Letter [", 1);
-		write(1, &on_off, 1);
+		write(1, &sig_count, 1);
 		ft_putstr_fd("] Received\n", 1);
-		on_off = 0;
+		sig_count = 0;
 		if (info->si_pid)
 			kill(info->si_pid, SIGUSR2);
 	}
@@ -49,7 +53,6 @@ int	main(void)
 	act.sa_sigaction = one_handler;
 	sigemptyset(&act.sa_mask);
 	act.sa_flags = act.sa_flags | SA_SIGINFO;
-
 	sigaction(SIGUSR1, &act, NULL);
 	sigaction(SIGUSR2, &act, NULL);
 	pid = getpid();

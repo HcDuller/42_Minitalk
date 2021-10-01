@@ -6,7 +6,7 @@
 /*   By: hde-camp <hde-camp@student.42sp.org.br>    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2021/09/29 13:39:49 by hde-camp          #+#    #+#             */
-/*   Updated: 2021/09/29 19:35:17 by hde-camp         ###   ########.fr       */
+/*   Updated: 2021/09/29 20:24:13 by hde-camp         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -17,14 +17,6 @@ int	keep_going = 0;
 void	one_handler(int signo, siginfo_t *info, void *context)
 {
 	keep_going = 1;
-	if (signo == SIGUSR1)
-	{
-		ft_putstr_fd("SIGUSR1 received\n", 1);
-	}
-	else if (signo == SIGUSR2)
-	{
-		ft_putstr_fd("SIRUSR2 received\n", 1);
-	}
 }
 
 int	ignore_signal(int signum)
