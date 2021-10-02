@@ -6,7 +6,7 @@
 /*   By: hde-camp <hde-camp@student.42sp.org.br>    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2021/09/22 15:35:39 by hde-camp          #+#    #+#             */
-/*   Updated: 2021/10/01 18:20:02 by hde-camp         ###   ########.fr       */
+/*   Updated: 2021/10/01 22:03:03 by hde-camp         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -15,6 +15,28 @@
 #include	<stdlib.h>
 #include	<stdio.h>
 #include	<unistd.h>
+
+char	*g_message;
+
+void	append_char_to_message(char c)
+{
+	char	*temp;
+	int		message_len;
+
+	if (g_message)
+	{
+		message_len = ft_strlen(g_message);
+		temp = ft_calloc(message_len + 1, sizeof(char));
+		temp[message_len] = c;
+		free(g_message);
+		g_message = temp;
+	}
+	else
+	{
+		g_message = ft_calloc(2, sizeof(char));
+		g_message[0] = c;
+	}
+}
 
 void	one_handler(int signo, siginfo_t *info, void *context)
 {
@@ -33,10 +55,11 @@ void	one_handler(int signo, siginfo_t *info, void *context)
 	else if (signo == SIGUSR2)
 	{
 		total_size += 1;
-		//push a letter corresponding to sig_count
+		append_char_to_message(sig_count);
 		ft_putstr_fd("Letter [", 1);
 		write(1, &sig_count, 1);
 		ft_putstr_fd("] Received\n", 1);
+		//ft_putstr_fd(g_message, 1);
 		sig_count = 0;
 		if (info->si_pid)
 			kill(info->si_pid, SIGUSR2);
@@ -52,7 +75,7 @@ int	main(void)
 
 	act.sa_sigaction = one_handler;
 	sigemptyset(&act.sa_mask);
-	act.sa_flags = act.sa_flags | SA_SIGINFO;
+	act.sa_flags = SA_SIGINFO | SA_NODEFER | SA_RESTART;
 	sigaction(SIGUSR1, &act, NULL);
 	sigaction(SIGUSR2, &act, NULL);
 	pid = getpid();
@@ -60,6 +83,7 @@ int	main(void)
 	ft_putstr_fd("PID that i got:", 1);
 	ft_putstr_fd(pid_as_str, 1);
 	ft_putstr_fd("\n", 1);
+	g_message = NULL;
 	while (1)
 		pause();
 	free(pid_as_str);
