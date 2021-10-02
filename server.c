@@ -6,7 +6,7 @@
 /*   By: hde-camp <hde-camp@student.42sp.org.br>    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2021/09/22 15:35:39 by hde-camp          #+#    #+#             */
-/*   Updated: 2021/10/01 22:03:03 by hde-camp         ###   ########.fr       */
+/*   Updated: 2021/10/01 23:34:42 by hde-camp         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -16,76 +16,35 @@
 #include	<stdio.h>
 #include	<unistd.h>
 
-char	*g_message;
-
-void	append_char_to_message(char c)
+void	sig_one_handler(int signo, siginfo_t *info, void *context)
 {
-	char	*temp;
-	int		message_len;
-
-	if (g_message)
-	{
-		message_len = ft_strlen(g_message);
-		temp = ft_calloc(message_len + 1, sizeof(char));
-		temp[message_len] = c;
-		free(g_message);
-		g_message = temp;
-	}
-	else
-	{
-		g_message = ft_calloc(2, sizeof(char));
-		g_message[0] = c;
-	}
+	write(1, "Recebi uma mensagem\n" , 20);
+	kill(info->pid)
 }
 
-void	one_handler(int signo, siginfo_t *info, void *context)
+void	print_pid(void)
 {
-	static	int	sig_count = 0;
-	static	int	total_size = 0;
-	
+	char	*ptr;
 
-	if (signo == SIGUSR1)
-	{
-		sig_count += 1;
-		if (info->si_pid)
-		{
-			kill(info->si_pid, SIGUSR1);
-		}
-	}
-	else if (signo == SIGUSR2)
-	{
-		total_size += 1;
-		append_char_to_message(sig_count);
-		ft_putstr_fd("Letter [", 1);
-		write(1, &sig_count, 1);
-		ft_putstr_fd("] Received\n", 1);
-		//ft_putstr_fd(g_message, 1);
-		sig_count = 0;
-		if (info->si_pid)
-			kill(info->si_pid, SIGUSR2);
-	}
-		
+	ptr = ft_itoa(getpid());
+	ft_putstr_fd("My pid is [", 1);
+	ft_putstr_fd(ptr, 1);
+	ft_putstr_fd("]\n", 1);
+	free(ptr);
 }
 
 int	main(void)
 {
-	int		pid;
-	char	*pid_as_str;
 	struct	sigaction	act;
 
-	act.sa_sigaction = one_handler;
+	act.sa_sigaction = sig_one_handler;
 	sigemptyset(&act.sa_mask);
 	act.sa_flags = SA_SIGINFO | SA_NODEFER | SA_RESTART;
 	sigaction(SIGUSR1, &act, NULL);
-	sigaction(SIGUSR2, &act, NULL);
-	pid = getpid();
-	pid_as_str = ft_itoa(pid);
-	ft_putstr_fd("PID that i got:", 1);
-	ft_putstr_fd(pid_as_str, 1);
-	ft_putstr_fd("\n", 1);
-	g_message = NULL;
+	print_pid();
 	while (1)
+	{
 		pause();
-	free(pid_as_str);
+	}
 	return (0);
 }
