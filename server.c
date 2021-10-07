@@ -5,8 +5,8 @@
 /*                                                    +:+ +:+         +:+     */
 /*   By: hde-camp <hde-camp@student.42sp.org.br>    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
-/*   Created: 2021/09/22 15:35:39 by hde-camp          #+#    #+#             */
-/*   Updated: 2021/10/06 17:09:21 by hde-camp         ###   ########.fr       */
+/*   Created: 2021/10/06 17:11:02 by hde-camp          #+#    #+#             */
+/*   Updated: 2021/10/06 21:07:18 by hde-camp         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -16,79 +16,94 @@
 #include	<stdio.h>
 #include	<unistd.h>
 
-void	reset_handler(size_t *bit_index, int *header_is_loaded, size_t *size, char **str)
-{
-	ft_putstr_fd("\nconnection reset\n", 1);
-	*bit_index = 0;
-	*header_is_loaded = 0;
-	*size = 0;
-	free(*str);
-	*str = NULL;
-}
+typedef struct s_conn_data {
+	size_t	stream_len;
+	size_t	stream_len_left;
+	int		bit_index;
+	int		size_index;
+	char	*str;
+} t_conn_data;
 
-void	print_and_reset(size_t *bit_index, int *header_is_loaded, size_t *size, char **str)
-{
-	ft_putstr_fd(*str, 1);
-	reset_handler(bit_index, header_is_loaded, size, str);
-}
-
-void	print_iteration(size_t index)
+void	print_size(size_t size)
 {
 	char	*ptr;
 
-	ptr = ft_itoa(index);
-	ft_putstr_fd("Msg [",1);
-	ft_putstr_fd(ptr,1);
-	ft_putstr_fd("] \n",1);
+	ptr = ft_itoa(size);
+	ft_putstr_fd("size received[", 1);
+	ft_putstr_fd(ptr, 1);
+	ft_putstr_fd("]\n", 1);
 	free(ptr);
 }
 
-void	user_sig_handler(int signo, siginfo_t *info, void *context)
+void	start_conn_state(t_conn_data *state)
 {
-	static size_t	bit_index = 0;
-	static int		header_is_loaded = 0;
-	static size_t	size = 0;
-	static char		*str = NULL;
+	state->stream_len = 0;
+	state->stream_len_left = 0;
+	state->bit_index = 7;
+	state->size_index = 31;
+	state->str = NULL;
+}
 
-	if (!header_is_loaded)
+void	sig_handler(int signo, siginfo_t *info, void *context)
+{
+//connecxao aberta?
+//ja recebeu stream_len?
+//tamanho da stream em bytes (stream_len)
+//bit a ser recebido
+	static t_conn_data conn_state = {0, 0, 7, 31, NULL};
+	static char		*str;
+	size_t			byte_index;
+
+	//start_conn_state(&conn_state);
+	if (conn_state.size_index >= 0)
 	{
-		if (bit_index < 32)
+		if (signo == SIGUSR1)
+			conn_state.stream_len |= (0b10000000000000000000000000000000 >> conn_state.size_index);
+		conn_state.size_index--;
+		if (conn_state.size_index < 0)
 		{
-			if (signo == SIGUSR1)
-				size = size | (1 << bit_index);
-			bit_index++;
-			if (bit_index == 32)
-			{
-				header_is_loaded = 1;
-				bit_index = 0;
-				str = ft_calloc(size + 1, sizeof(char));
-			}
-		}
-		//print_iteration(bit_index);
+			print_size(conn_state.stream_len);
+			str = ft_calloc(conn_state.stream_len + 1, sizeof(char));
+			conn_state.stream_len_left = conn_state.stream_len;
+		}	
 	}
 	else
 	{
-		//print_iteration(bit_index + 33);
+		byte_index = conn_state.stream_len - conn_state.stream_len_left;
 		if (signo == SIGUSR1)
-			str[bit_index / 8] = str[bit_index / 8] | (0b10000000 >> (bit_index % 8));
-		bit_index++;
-		if (bit_index == size * 8)
-			print_and_reset(&bit_index, &header_is_loaded, &size, &str);
+			conn_state.str[byte_index] |= 0b10000000 >> conn_state.bit_index;
+		conn_state.bit_index--;
+		if (conn_state.bit_index == -1)
+		{
+			conn_state.bit_index = 7;
+			conn_state.stream_len_left--;
+		}
+		if (conn_state.stream_len_left == 0)
+		{
+			ft_putstr_fd(conn_state.str, 1);
+			ft_putstr_fd("\n", 1);
+			free(conn_state.str);
+			str = NULL;
+			conn_state.stream_len = 0;
+			conn_state.stream_len_left = 0;
+			conn_state.bit_index = 7;
+			conn_state.size_index = 31;
+		}
 	}
 	kill(info->si_pid, SIGUSR1);
 }
 
-void	eval_size(void)
+void	set_listeners()
 {
-	unsigned long	s;
-	int				bit_index;
+	struct sigaction	act;
 
-	s = 0;
-	bit_index = 0;
-	while (bit_index < 32)
-	{
-		pause();
-	}
+	sigaction(SIGUSR1,NULL, &act);
+	act.sa_flags = 0 | SA_SIGINFO | SA_NODEFER;
+	sigemptyset(&act.sa_mask);
+	act.sa_sigaction = sig_handler;
+	sigaction(SIGUSR1, &act, NULL);
+	sigaction(SIGUSR2, &act, NULL);
+	ft_putstr_fd("Listeners were set\n", 1);
 }
 
 void	print_pid(int pid)
@@ -104,18 +119,8 @@ void	print_pid(int pid)
 
 int	main(void)
 {
-	struct sigaction	act_1;
-	struct sigaction	act_2;
-
-	act_1.sa_sigaction = user_sig_handler;
-	act_2.sa_sigaction = user_sig_handler;
 	print_pid(getpid());
-	sigemptyset(&act_1.sa_mask);
-	sigemptyset(&act_2.sa_mask);
-	act_1.sa_flags = SA_SIGINFO | SA_NODEFER | SA_RESTART;
-	act_2.sa_flags = SA_SIGINFO | SA_NODEFER | SA_RESTART;
-	sigaction(SIGUSR1, &act_1, NULL);
-	sigaction(SIGUSR2, &act_2, NULL);
+	set_listeners();
 	while (1)
 		pause();
 	return (0);

@@ -6,24 +6,30 @@
 /*   By: hde-camp <hde-camp@student.42sp.org.br>    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2021/09/29 13:39:49 by hde-camp          #+#    #+#             */
-/*   Updated: 2021/10/06 16:58:25 by hde-camp         ###   ########.fr       */
+/*   Updated: 2021/10/06 19:50:33 by hde-camp         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include <minitalk.h>
 
+int	g_can_go_on = 1;
+
 void	signal_handler(int signo, siginfo_t *info, void *context)
 {
-	ft_putstr_fd("Msg_received \n",1);
+	g_can_go_on = 1;
 }
 
 void	send_bit(char bit, int pid)
 {
+	int	sig_success;
+
+	g_can_go_on = 0;
 	if (bit)
-		kill(pid, SIGUSR1);
+		sig_success = kill(pid, SIGUSR1);
 	else
-		kill(pid, SIGUSR2);
-	pause();
+		sig_success = kill(pid, SIGUSR2);
+	if (sig_success == -1)
+		ft_putstr_fd("Signal Failed\n", 1);
 }
 
 void	send_byte(char c,int pid)
@@ -33,8 +39,11 @@ void	send_byte(char c,int pid)
 	i = 7;
 	while (i > -1)
 	{
-		send_bit((1 << i) & c, pid);
-		i--;
+		if (g_can_go_on)
+		{
+			send_bit((0b10000000 >> i) & c, pid);
+			i--;
+		}
 	}
 }
 
@@ -43,15 +52,23 @@ void	send_size_t(size_t *size,int pid)
 	int		b_shifter;
 	size_t	mask;
 
-	b_shifter = 0;
-	mask = 1;
-	while (b_shifter < 32)
+	b_shifter = 31;
+	mask = 0b10000000000000000000000000000000;
+	while (b_shifter >= 0)
 	{
-		if ((mask << b_shifter) & *size)
-			send_bit(1, pid);
-		else
-			send_bit(0, pid);
-		b_shifter++;
+		if (g_can_go_on)
+		{
+			if ((mask >> b_shifter) & *size)
+				send_bit(1, pid);
+			else
+				send_bit(0, pid);
+			b_shifter--;
+		}
+		if (!usleep(1000000))
+		{
+			ft_putstr_fd("Empaquei Aqui\n", 1);
+			g_can_go_on = 1;
+		}
 	}
 }
 
@@ -70,9 +87,9 @@ void	set_listeners()
 {
 	struct	sigaction	act;
 
-	act.sa_sigaction = signal_handler;
+	act.sa_sigaction = &signal_handler;
 	sigemptyset(&act.sa_mask);
-	act.sa_flags = SA_SIGINFO | SA_NODEFER | SA_RESTART;
+	act.sa_flags = SA_SIGINFO;
 	sigaction(SIGUSR1, &act, NULL);
 	sigaction(SIGUSR2, &act, NULL);
 }
