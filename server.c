@@ -6,7 +6,7 @@
 /*   By: hde-camp <hde-camp@student.42sp.org.br>    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2021/10/06 17:11:02 by hde-camp          #+#    #+#             */
-/*   Updated: 2021/10/11 17:34:45 by hde-camp         ###   ########.fr       */
+/*   Updated: 2021/10/11 17:47:35 by hde-camp         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -22,13 +22,9 @@ static void	sig_handler(int signo, siginfo_t *info, void *context)
 
 	(void)context;
 	if (conn_state.size_index >= 0)
-	{
 		msg_size_handler(&conn_state, signo);
-	}
 	else
-	{
 		msg_content_handler(&conn_state, signo);
-	}
 	kill(info->si_pid, SIGUSR1);
 }
 
