@@ -6,7 +6,7 @@
 /*   By: hde-camp <hde-camp@student.42sp.org.br>    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2021/10/11 17:14:24 by hde-camp          #+#    #+#             */
-/*   Updated: 2021/10/11 17:21:12 by hde-camp         ###   ########.fr       */
+/*   Updated: 2021/10/14 13:40:45 by hde-camp         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -24,7 +24,10 @@ void	send_bit(char bit, int pid)
 	else
 		sig_success = kill(pid, SIGUSR2);
 	if (sig_success == -1)
+	{
 		ft_putstr_fd("Signal Failed, Review your server PID.\n", 1);
+		exit(EXIT_FAILURE);
+	}
 }
 
 void	send_byte(char c, int pid)
