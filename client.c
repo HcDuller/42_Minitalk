@@ -6,7 +6,7 @@
 /*   By: hde-camp <hde-camp@student.42sp.org.br>    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2021/09/29 13:39:49 by hde-camp          #+#    #+#             */
-/*   Updated: 2021/10/11 17:35:11 by hde-camp         ###   ########.fr       */
+/*   Updated: 2021/10/14 11:34:35 by hde-camp         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -40,9 +40,13 @@ int	main(int argc, char **argv)
 	size_t	size_in_bits;
 	size_t	i;
 
-	set_listeners();
-	if (argc > 2)
+	if (argc < 3)
+		ft_putstr_fd("Ao menos dois argumentos sao necessarios", 1);
+	else if (argc > 3)
+		ft_putstr_fd("Foram fornecidos mais argumentos que o necessario", 1);
+	else
 	{
+		set_listeners();
 		pid = ft_atoi(argv[1]);
 		size = ft_strlen(argv[2]);
 		size_in_bits = 8 * size;
@@ -54,7 +58,5 @@ int	main(int argc, char **argv)
 			i++;
 		}
 	}
-	else
-		ft_putstr_fd("Ao menos dois argumentos sao necessarios", 1);
 	return (0);
 }
